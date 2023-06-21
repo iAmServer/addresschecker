@@ -41,7 +41,7 @@ const checker_1 = require("./checker");
 const fileCreator_1 = __importDefault(require("./fileCreator"));
 const flieParser_1 = __importStar(require("./flieParser"));
 const app = (0, express_1.default)();
-const port = 3000;
+const port = 8080;
 const upload = (0, multer_1.default)({ dest: "uploads/" });
 app.use(express_1.default.urlencoded({ extended: true }));
 app.get("/", (req, res) => {
