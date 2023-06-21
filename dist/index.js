@@ -112,4 +112,4 @@ app.post("/match", upload.array("files"),
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
-//# sourceMappingURL=server.js.map
+//# sourceMappingURL=index.js.map

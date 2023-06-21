@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: "checker",
-      script: "dist/server.js",
+      script: "dist/index.js",
       watch: true,
       ignore_watch: ["node_modules", "logs"],
       watch_options: {
