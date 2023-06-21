@@ -5,7 +5,7 @@ import {
 } from "./constant";
 import CreateAndDownloadSheet from "./fileCreator";
 import FileParse, { removeFile } from "./flieParser";
-import { Response, Request } from "express";
+import { Response, Request, NextFunction, Express } from "express";
 
 const getStreetFromAddress = (address: string): string => {
   const match = quoteRemoval(address).split(":")[0].split("-")[0].split(",");
@@ -82,56 +82,60 @@ export const removeOrdinal = (address: string): string => {
   return words.join(" ");
 };
 
-const ProcessAddressMatching = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  const sheet1Path = req.files["sheet1"][0].path;
-  const sheet2Path = req.files["sheet2"][0].path;
+// const ProcessAddressMatching = async (
+//   req: Request,
+//   res: Response
+// ): Promise<void> => {
+//   const files = req.files as FileArray;
+// console.log(req.files.sheet1);
 
-  try {
-    const [parsedAddresses1, parsedAddresses2] = await Promise.all([
-      FileParse(sheet1Path),
-      FileParse(sheet2Path),
-    ]);
+// console.log(files);
+// const sheet1Path = files.sheet1[0].path; //files["sheet1"][0].path;
+// const sheet2Path = files.sheet1[0].path;
 
-    const output = Array.from(parsedAddresses1, (address1, i) => {
-      address1 = quoteRemoval(address1);
+// try {
+//   const [parsedAddresses1, parsedAddresses2] = await Promise.all([
+//     FileParse(sheet1Path),
+//     FileParse(sheet2Path),
+//   ]);
 
-      if (i > parsedAddresses2.length) {
-        return [address1, "", "NOT MATCH"];
-      }
+//   const output = Array.from(parsedAddresses1, (address1, i) => {
+//     address1 = quoteRemoval(address1);
 
-      const address2 = quoteRemoval(parsedAddresses2[i]);
+//     if (i > parsedAddresses2.length) {
+//       return [address1, "", "NOT MATCH"];
+//     }
 
-      if (address1 && address2) {
-        return [
-          address1,
-          address2,
-          getMatchResultString(MatchAddresses(address1, address2)),
-        ];
-      }
-    });
+//     const address2 = quoteRemoval(parsedAddresses2[i]);
 
-    CreateAndDownloadSheet(output, res, new Date().toDateString());
-  } catch (error) {
-    res.status(500).send(`
-      <html>
-        <body>
-          <h1>Address Matcher</h1>
-          <p>Error: ${error.message}</p>
-          <a href="/">Go Back</a>
-        </body>
-      </html>
-    `);
-  } finally {
-    removeFile(sheet1Path);
-    removeFile(sheet2Path);
-  }
-};
+//     if (address1 && address2) {
+//       return [
+//         address1,
+//         address2,
+//         getMatchResultString(MatchAddresses(address1, address2)),
+//       ];
+//     }
+//   });
+
+//   CreateAndDownloadSheet(output, res, new Date().toDateString());
+// } catch (error) {
+//   res.status(500).send(`
+//     <html>
+//       <body>
+//         <h1>Address Matcher</h1>
+//         <p>Error: ${error.message}</p>
+//         <a href="/">Go Back</a>
+//       </body>
+//     </html>
+//   `);
+// } finally {
+//   removeFile(sheet1Path);
+//   removeFile(sheet2Path);
+// }
+// };
 
 const getMatchResultString = (matchResult: boolean): string => {
   return matchResult ? "MATCH" : "NOT MATCH";
 };
 
-export default ProcessAddressMatching;
+// export default ProcessAddressMatching;

@@ -1,15 +1,17 @@
-import express from "express";
-import multer from "multer";
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const multer_1 = __importDefault(require("multer"));
 // import ProcessAddressMatching from "./checker";
-
-const app = express();
+const app = (0, express_1.default)();
 const port = 3000;
-const upload = multer({ dest: "uploads/" });
-
-app.use(express.urlencoded({ extended: true }));
-
+const upload = (0, multer_1.default)({ dest: "uploads/" });
+app.use(express_1.default.urlencoded({ extended: true }));
 app.get("/", (req, res) => {
-  res.send(`
+    res.send(`
     <html>
       <head>
         <title>Address Matcher</title>
@@ -27,7 +29,6 @@ app.get("/", (req, res) => {
     </html>
   `);
 });
-
 // app.post(
 //   "/match",
 //   upload.fields([
@@ -36,7 +37,7 @@ app.get("/", (req, res) => {
 //   ]),
 //   ProcessAddressMatching
 // );
-
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+    console.log(`Server is running on port ${port}`);
 });
+//# sourceMappingURL=server.js.map

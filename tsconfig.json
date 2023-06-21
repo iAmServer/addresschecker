@@ -4,8 +4,13 @@
     "module": "commonjs",
     "outDir": "dist",
     "strict": false,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "allowSyntheticDefaultImports": true,
+    "noImplicitAny": true,
+    "moduleResolution": "node",
+    "sourceMap": true
   },
-  "include": ["src"],
+  "include": ["./src/**/*"],
   "exclude": ["node_modules"]
 }
