@@ -51,7 +51,9 @@ app.post(
       sheet2Path = files.sheet2[0].path;
 
       if (!sheet1Path || !sheet2Path) {
-        throw new Error("File paths can't be empty");
+        return res
+          .status(500)
+          .send(ErrorResponse("Both files are required for the script to run"));
       }
 
       const [parsedAddresses1, parsedAddresses2] = await Promise.all([
@@ -59,12 +61,18 @@ app.post(
         FileParse(sheet2Path),
       ]);
 
+      if (parsedAddresses1.length !== parsedAddresses2.length) {
+        return res
+          .status(500)
+          .send(
+            ErrorResponse(
+              "The number of address in the files are not equal, please make sure they are before running the script"
+            )
+          );
+      }
+
       const output = Array.from(parsedAddresses1, (address1, i) => {
         address1 = quoteRemoval(address1);
-
-        if (i > parsedAddresses2.length) {
-          return [address1, "", "NOT MATCH"];
-        }
 
         const address2 = quoteRemoval(parsedAddresses2[i]);
 
@@ -79,15 +87,7 @@ app.post(
 
       CreateAndDownloadSheet(output, res, new Date().toDateString());
     } catch (error) {
-      res.status(500).send(`
-      <html>
-        <body>
-          <h1>Address Matcher</h1>
-          <p>Error: ${error.message}</p>
-          <a href="/">Go Back</a>
-        </body>
-      </html>
-    `);
+      res.status(500).send(ErrorResponse(error.message));
     } finally {
       removeFile(sheet1Path);
       removeFile(sheet2Path);
@@ -95,6 +95,24 @@ app.post(
   }
 );
 
+console.log(
+  `150 Washington Avenue vs 150 Washington Ave ${
+    MatchAddresses("150 Washington Avenue", "150 Washington Ave")
+      ? "Matches"
+      : "Does not match"
+  }`
+);
+
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
+
+const ErrorResponse = (error: string): string => {
+  return `<html>
+        <body>
+          <h1>Address Matcher</h1>
+          <p>Error: ${error}</p>
+          <a href="/">Go Back</a>
+        </body>
+      </html>`;
+};

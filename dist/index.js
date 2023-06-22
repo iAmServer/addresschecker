@@ -77,17 +77,21 @@ upload.fields([
         sheet1Path = files.sheet1[0].path;
         sheet2Path = files.sheet2[0].path;
         if (!sheet1Path || !sheet2Path) {
-            throw new Error("File paths can't be empty");
+            return res
+                .status(500)
+                .send(ErrorResponse("Both files are required for the script to run"));
         }
         const [parsedAddresses1, parsedAddresses2] = yield Promise.all([
             (0, flieParser_1.default)(sheet1Path),
             (0, flieParser_1.default)(sheet2Path),
         ]);
+        if (parsedAddresses1.length !== parsedAddresses2.length) {
+            return res
+                .status(500)
+                .send(ErrorResponse("The number of address in the files are not equal, please make sure they are before running the script"));
+        }
         const output = Array.from(parsedAddresses1, (address1, i) => {
             address1 = (0, checker_1.quoteRemoval)(address1);
-            if (i > parsedAddresses2.length) {
-                return [address1, "", "NOT MATCH"];
-            }
             const address2 = (0, checker_1.quoteRemoval)(parsedAddresses2[i]);
             if (address1 && address2) {
                 return [
@@ -100,22 +104,26 @@ upload.fields([
         (0, fileCreator_1.default)(output, res, new Date().toDateString());
     }
     catch (error) {
-        res.status(500).send(`
-      <html>
-        <body>
-          <h1>Address Matcher</h1>
-          <p>Error: ${error.message}</p>
-          <a href="/">Go Back</a>
-        </body>
-      </html>
-    `);
+        res.status(500).send(ErrorResponse(error.message));
     }
     finally {
         (0, flieParser_1.removeFile)(sheet1Path);
         (0, flieParser_1.removeFile)(sheet2Path);
     }
 }));
+console.log(`150 Washington Avenue vs 150 Washington Ave ${(0, checker_1.MatchAddresses)("150 Washington Avenue", "150 Washington Ave")
+    ? "Matches"
+    : "Does not match"}`);
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
+const ErrorResponse = (error) => {
+    return `<html>
+        <body>
+          <h1>Address Matcher</h1>
+          <p>Error: ${error}</p>
+          <a href="/">Go Back</a>
+        </body>
+      </html>`;
+};
 //# sourceMappingURL=index.js.map

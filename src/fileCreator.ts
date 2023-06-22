@@ -10,6 +10,7 @@ const CreateAndDownloadSheet = (
   const worksheet = workbook.addWorksheet("Output");
 
   worksheet.addRow(["Address 1", "Address 2", "Output"]);
+
   output.forEach((row) => {
     worksheet.addRow(row);
   });
