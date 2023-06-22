@@ -54,66 +54,141 @@ app.get("/", (req, res) => {
       </head>
       <body>
         <h1>Address Matcher</h1>
-        <form method="POST" action="/match" enctype="multipart/form-data">
-          <label for="sheet1">Sheet 1:</label>
-          <input type="file" id="sheet1" name="sheet1" required><br><br>
-          <label for="sheet2">Sheet 2:</label>
-          <input type="file" id="sheet2" name="sheet2" required><br><br>
-          <input type="submit" value="Check Match">
-        </form>
+        
+        <p>If you have the excel files, click the file checker otherwsise click normal checker</p>
+
+        <a href="/file">File Checker</a> &nbsp&nbsp&nbsp&nbsp&nbsp
+        <a href="/input">Normal Checker</a>
       </body>
     </html>
   `);
 });
-app.post("/match", 
-// upload.array("files"),
-upload.fields([
+app.get("/file", (req, res) => {
+    res.send(`
+    <html>
+      <head>
+        <title>Address Matcher</title>
+      </head>
+      <body>
+        <h1>Address Matcher</h1>
+        <form method="POST" action="/match/file" enctype="multipart/form-data">
+
+          <label for="sheet1">Sheet 1:</label>
+          <input type="file" id="sheet1" name="sheet1" required accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" /><br><br>
+
+          <label for="sheet2">Sheet 2:</label>
+          <input type="file" id="sheet2" name="sheet2" required accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" /><br><br>
+
+          <label for="addresses2">Export to excel? 
+            <input type="checkbox" name="export" />
+          </label><br><br>
+
+          <input type="submit" value="Check Match">
+        </form>
+      </body>
+
+      <br /><br /><a href="/">Go Back</a>
+    </html>
+  `);
+});
+app.get("/input", (req, res) => {
+    res.send(`
+    <html>
+      <head>
+        <title>Address Matcher</title>
+      </head>
+      <body>
+        <h1>Address Matcher</h1>
+        <form method="POST" action="/match">
+          <p>Each address should be on a new line</p>
+
+          <label for="addresses1">Addresses 1:</label>
+          <textarea id="addresses1" name="addresses1" rows="5" required></textarea><br><br>
+
+          <label for="addresses2">Addresses 2:</label>
+          <textarea id="addresses2" name="addresses2" rows="5" required></textarea><br><br>
+          
+          <label for="addresses2">Export to excel? 
+            <input type="checkbox" name="export" />
+          </label><br><br>
+
+          <input type="submit" value="Check Match">
+        </form>
+
+        <br /><br /><a href="/">Go Back</a>
+      </body>
+    </html>
+  `);
+});
+app.post("/match", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const addresses1 = req.body.addresses1;
+    const addresses2 = req.body.addresses2;
+    const exportOutput = req.body.export === "on";
+    if (!addresses1 || !addresses2) {
+        return res
+            .status(400)
+            .send(ErrorResponse("Both address fields are required"));
+    }
+    try {
+        const parsedAddresses1 = addresses1.split("\n");
+        const parsedAddresses2 = addresses2.split("\n");
+        if (exportOutput) {
+            FileOutput(parsedAddresses1, parsedAddresses2, res);
+        }
+        else {
+            TableOutput(parsedAddresses1, parsedAddresses2, res);
+        }
+    }
+    catch (error) {
+        return res.status(500).send(ErrorResponse(error.message));
+    }
+}));
+app.post("/match/file", upload.fields([
     { name: "sheet1", maxCount: 1 },
     { name: "sheet2", maxCount: 1 },
 ]), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    let sheet1Path, sheet2Path;
+    const exportOutput = req.body.export === "on";
+    let sheet1Path;
+    let sheet2Path;
     try {
         const files = req.files;
         sheet1Path = files.sheet1[0].path;
         sheet2Path = files.sheet2[0].path;
         if (!sheet1Path || !sheet2Path) {
             return res
-                .status(500)
+                .status(400)
                 .send(ErrorResponse("Both files are required for the script to run"));
         }
-        const [parsedAddresses1, parsedAddresses2] = yield Promise.all([
+        const [parsedAddresses1, parsedAddresses2] = yield Promise.allSettled([
             (0, flieParser_1.default)(sheet1Path),
             (0, flieParser_1.default)(sheet2Path),
         ]);
-        if (parsedAddresses1.length !== parsedAddresses2.length) {
+        if (parsedAddresses1.status === "rejected" ||
+            parsedAddresses2.status === "rejected") {
             return res
-                .status(500)
-                .send(ErrorResponse("The number of address in the files are not equal, please make sure they are before running the script"));
+                .status(400)
+                .send(ErrorResponse("We couldn't parse one or both files, please look into the uploaded file and try again"));
         }
-        const output = Array.from(parsedAddresses1, (address1, i) => {
-            address1 = (0, checker_1.quoteRemoval)(address1);
-            const address2 = (0, checker_1.quoteRemoval)(parsedAddresses2[i]);
-            if (address1 && address2) {
-                return [
-                    address1,
-                    address2,
-                    (0, checker_1.getMatchResultString)((0, checker_1.MatchAddresses)(address1, address2)),
-                ];
-            }
-        });
-        (0, fileCreator_1.default)(output, res, new Date().toDateString());
+        if (exportOutput) {
+            FileOutput(parsedAddresses1.value, parsedAddresses2.value, res);
+        }
+        else {
+            TableOutput(parsedAddresses1.value, parsedAddresses2.value, res);
+        }
     }
     catch (error) {
+        console.log(error);
         res.status(500).send(ErrorResponse(error.message));
     }
     finally {
-        (0, flieParser_1.removeFile)(sheet1Path);
-        (0, flieParser_1.removeFile)(sheet2Path);
+        if (sheet1Path) {
+            (0, flieParser_1.removeFile)(sheet1Path);
+        }
+        if (sheet2Path) {
+            (0, flieParser_1.removeFile)(sheet2Path);
+        }
     }
 }));
-console.log(`150 Washington Avenue vs 150 Washington Ave ${(0, checker_1.MatchAddresses)("150 Washington Avenue", "150 Washington Ave")
-    ? "Matches"
-    : "Does not match"}`);
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
@@ -125,5 +200,69 @@ const ErrorResponse = (error) => {
           <a href="/">Go Back</a>
         </body>
       </html>`;
+};
+const TableOutput = (parsedAddresses1, parsedAddresses2, res, isFile) => {
+    if (parsedAddresses1.length !== parsedAddresses2.length) {
+        return res
+            .status(400)
+            .send(ErrorResponse("The number of addresses in the fields is not equal"));
+    }
+    const output = parsedAddresses1.map((address1, i) => {
+        address1 = (0, checker_1.quoteRemoval)(address1);
+        const address2 = (0, checker_1.quoteRemoval)(parsedAddresses2[i]);
+        if (address1 && address2) {
+            return [
+                address1,
+                address2,
+                (0, checker_1.getMatchResultString)((0, checker_1.MatchAddresses)(address1, address2)),
+            ];
+        }
+    });
+    res.status(200).send(`
+      <html>
+        <head>
+          <title>Address Matcher - Results</title>
+        </head>
+        <body>
+          <h1>Address Matcher - Results</h1>
+          <table>
+            <tr>
+              <th>Address 1</th>
+              <th>Address 2</th>
+              <th>Match Result</th>
+            </tr>
+            ${output
+        .map(([address1, address2, matchResult]) => `
+                <tr>
+                  <td>${address1}</td>
+                  <td>${address2}</td>
+                  <td>${matchResult}</td>
+                </tr>
+              `)
+        .join("")}
+          </table>
+          <a href="/">Go Back</a>
+        </body>
+      </html>
+    `);
+};
+const FileOutput = (parsedAddresses1, parsedAddresses2, res) => {
+    if (parsedAddresses1.length !== parsedAddresses2.length) {
+        return res
+            .status(500)
+            .send(ErrorResponse("The number of address in the files are not equal, please make sure they are before running the script"));
+    }
+    const output = Array.from(parsedAddresses1, (address1, i) => {
+        address1 = (0, checker_1.quoteRemoval)(address1);
+        const address2 = (0, checker_1.quoteRemoval)(parsedAddresses2[i]);
+        if (address1 && address2) {
+            return [
+                address1,
+                address2,
+                (0, checker_1.getMatchResultString)((0, checker_1.MatchAddresses)(address1, address2)),
+            ];
+        }
+    });
+    (0, fileCreator_1.default)(output, res, new Date().toDateString());
 };
 //# sourceMappingURL=index.js.map
