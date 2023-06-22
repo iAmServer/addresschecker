@@ -177,7 +177,6 @@ app.post("/match/file", upload.fields([
         }
     }
     catch (error) {
-        console.log(error);
         res.status(500).send(ErrorResponse(error.message));
     }
     finally {
@@ -207,7 +206,7 @@ const TableOutput = (parsedAddresses1, parsedAddresses2, res, isFile) => {
             .status(400)
             .send(ErrorResponse("The number of addresses in the fields is not equal"));
     }
-    const output = parsedAddresses1.map((address1, i) => {
+    const output = Array.from(parsedAddresses1, (address1, i) => {
         address1 = (0, checker_1.quoteRemoval)(address1);
         const address2 = (0, checker_1.quoteRemoval)(parsedAddresses2[i]);
         if (address1 && address2) {
@@ -232,7 +231,11 @@ const TableOutput = (parsedAddresses1, parsedAddresses2, res, isFile) => {
               <th>Match Result</th>
             </tr>
             ${output
-        .map(([address1, address2, matchResult]) => `
+        .filter(Boolean)
+        .map(([address1, address2, matchResult]) => address1 &&
+        address2 &&
+        matchResult &&
+        `
                 <tr>
                   <td>${address1}</td>
                   <td>${address2}</td>

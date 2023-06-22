@@ -163,7 +163,6 @@ app.post(
         TableOutput(parsedAddresses1.value, parsedAddresses2.value, res);
       }
     } catch (error) {
-      console.log(error);
       res.status(500).send(ErrorResponse(error.message));
     } finally {
       if (sheet1Path) {
@@ -204,8 +203,9 @@ const TableOutput = (
       );
   }
 
-  const output = parsedAddresses1.map((address1: string, i: number) => {
+  const output = Array.from(parsedAddresses1, (address1, i) => {
     address1 = quoteRemoval(address1);
+
     const address2 = quoteRemoval(parsedAddresses2[i]);
 
     if (address1 && address2) {
@@ -231,8 +231,13 @@ const TableOutput = (
               <th>Match Result</th>
             </tr>
             ${output
+              .filter(Boolean)
               .map(
-                ([address1, address2, matchResult]) => `
+                ([address1, address2, matchResult]) =>
+                  address1 &&
+                  address2 &&
+                  matchResult &&
+                  `
                 <tr>
                   <td>${address1}</td>
                   <td>${address2}</td>
