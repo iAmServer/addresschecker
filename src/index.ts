@@ -3,9 +3,12 @@ import multer from "multer";
 import { getMatchResultString, MatchAddresses, quoteRemoval } from "./checker";
 import CreateAndDownloadSheet from "./fileCreator";
 import FileParse, { removeFile } from "./flieParser";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const app = express();
-const port = 8080;
+const port = process.env.PORT || 3000;
 const upload = multer({ dest: "uploads/" });
 
 app.use(express.urlencoded({ extended: true }));
@@ -32,11 +35,11 @@ app.get("/", (req, res) => {
 
 app.post(
   "/match",
-  upload.array("files"),
-  // upload.fields([
-  //   { name: "sheet1", maxCount: 1 },
-  //   { name: "sheet2", maxCount: 1 },
-  // ]),
+  // upload.array("files"),
+  upload.fields([
+    { name: "sheet1", maxCount: 1 },
+    { name: "sheet2", maxCount: 1 },
+  ]),
   async (req, res) => {
     const files: { [fieldname: string]: Express.Multer.File[] } =
       req?.files as any;

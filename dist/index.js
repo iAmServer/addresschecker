@@ -40,8 +40,10 @@ const multer_1 = __importDefault(require("multer"));
 const checker_1 = require("./checker");
 const fileCreator_1 = __importDefault(require("./fileCreator"));
 const flieParser_1 = __importStar(require("./flieParser"));
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
 const app = (0, express_1.default)();
-const port = 8080;
+const port = process.env.PORT || 3000;
 const upload = (0, multer_1.default)({ dest: "uploads/" });
 app.use(express_1.default.urlencoded({ extended: true }));
 app.get("/", (req, res) => {
@@ -63,12 +65,12 @@ app.get("/", (req, res) => {
     </html>
   `);
 });
-app.post("/match", upload.array("files"), 
-// upload.fields([
-//   { name: "sheet1", maxCount: 1 },
-//   { name: "sheet2", maxCount: 1 },
-// ]),
-(req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.post("/match", 
+// upload.array("files"),
+upload.fields([
+    { name: "sheet1", maxCount: 1 },
+    { name: "sheet2", maxCount: 1 },
+]), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const files = req === null || req === void 0 ? void 0 : req.files;
     const sheet1Path = files["sheet1"][0].path;
     const sheet2Path = files.sheet1[1].path;
