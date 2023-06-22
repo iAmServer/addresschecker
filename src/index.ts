@@ -41,12 +41,19 @@ app.post(
     { name: "sheet2", maxCount: 1 },
   ]),
   async (req, res) => {
-    const files: { [fieldname: string]: Express.Multer.File[] } =
-      req?.files as any;
-    const sheet1Path = files["sheet1"][0].path;
-    const sheet2Path = files.sheet1[1].path;
+    let sheet1Path, sheet2Path;
 
     try {
+      const files: { [fieldname: string]: Express.Multer.File[] } =
+        req.files as any;
+
+      sheet1Path = files.sheet1[0].path;
+      sheet2Path = files.sheet2[0].path;
+
+      if (!sheet1Path || !sheet2Path) {
+        throw new Error("File paths can't be empty");
+      }
+
       const [parsedAddresses1, parsedAddresses2] = await Promise.all([
         FileParse(sheet1Path),
         FileParse(sheet2Path),
