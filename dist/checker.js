@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getMatchResultString = exports.removeOrdinal = exports.MatchAddresses = exports.quoteRemoval = void 0;
+exports.getMatchResultString = exports.removeOrdinal = exports.MatchAddresses2 = exports.MatchAddresses = exports.quoteRemoval = void 0;
 const constant_1 = require("./constant");
 const getStreetFromAddress = (address) => {
     const match = (0, exports.quoteRemoval)(address).split(":")[0].split("-")[0].split(",");
@@ -46,6 +46,27 @@ const MatchAddresses = (address1, address2) => {
         formattedAddress1.includes(formattedAddress2));
 };
 exports.MatchAddresses = MatchAddresses;
+const MatchAddresses2 = (addresses1, addresses2) => {
+    const matches = [];
+    for (const address2 of addresses2) {
+        const formattedAddress2 = formatAddress(getStreetFromAddress(address2)).trim();
+        const addressMatches = [];
+        for (const address1 of addresses1) {
+            const formattedAddress1 = formatAddress(getStreetFromAddress(address1)).trim();
+            if (formattedAddress2 === formattedAddress1 ||
+                formattedAddress2.includes(formattedAddress1) ||
+                formattedAddress1.includes(formattedAddress2)) {
+                addressMatches.push(address1);
+            }
+        }
+        if (addressMatches.length > 0) {
+            addressMatches.unshift(address2);
+            matches.push(addressMatches);
+        }
+    }
+    return matches;
+};
+exports.MatchAddresses2 = MatchAddresses2;
 const ordinalRemoval = (value) => {
     return value.replace(/(\d+)(st|nd|rd|th)/gi, "$1");
 };

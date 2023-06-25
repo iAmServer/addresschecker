@@ -58,6 +58,41 @@ export const MatchAddresses = (address1: string, address2: string): boolean => {
   );
 };
 
+export const MatchAddresses2 = (
+  addresses1: string[],
+  addresses2: string[]
+): string[][] => {
+  const matches: string[][] = [];
+
+  for (const address2 of addresses2) {
+    const formattedAddress2 = formatAddress(
+      getStreetFromAddress(address2)
+    ).trim();
+    const addressMatches: string[] = [];
+
+    for (const address1 of addresses1) {
+      const formattedAddress1 = formatAddress(
+        getStreetFromAddress(address1)
+      ).trim();
+
+      if (
+        formattedAddress2 === formattedAddress1 ||
+        formattedAddress2.includes(formattedAddress1) ||
+        formattedAddress1.includes(formattedAddress2)
+      ) {
+        addressMatches.push(address1);
+      }
+    }
+
+    if (addressMatches.length > 0) {
+      addressMatches.unshift(address2);
+      matches.push(addressMatches);
+    }
+  }
+
+  return matches;
+};
+
 const ordinalRemoval = (value: string) => {
   return value.replace(/(\d+)(st|nd|rd|th)/gi, "$1");
 };

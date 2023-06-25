@@ -200,23 +200,13 @@ const ErrorResponse = (error) => {
         </body>
       </html>`;
 };
-const TableOutput = (parsedAddresses1, parsedAddresses2, res, isFile) => {
+const TableOutput = (parsedAddresses1, parsedAddresses2, res) => {
     if (parsedAddresses1.length !== parsedAddresses2.length) {
         return res
             .status(400)
             .send(ErrorResponse("The number of addresses in the fields is not equal"));
     }
-    const output = Array.from(parsedAddresses1, (address1, i) => {
-        address1 = (0, checker_1.quoteRemoval)(address1);
-        const address2 = (0, checker_1.quoteRemoval)(parsedAddresses2[i]);
-        if (address1 && address2) {
-            return [
-                address1,
-                address2,
-                (0, checker_1.getMatchResultString)((0, checker_1.MatchAddresses)(address1, address2)),
-            ];
-        }
-    });
+    const output = (0, checker_1.MatchAddresses2)(parsedAddresses1, parsedAddresses2);
     res.status(200).send(`
       <html>
         <head>
@@ -228,18 +218,15 @@ const TableOutput = (parsedAddresses1, parsedAddresses2, res, isFile) => {
             <tr>
               <th>Address 1</th>
               <th>Address 2</th>
-              <th>Match Result</th>
             </tr>
             ${output
         .filter(Boolean)
-        .map(([address1, address2, matchResult]) => address1 &&
+        .map(([address1, address2]) => address1 &&
         address2 &&
-        matchResult &&
         `
                 <tr>
                   <td>${address1}</td>
                   <td>${address2}</td>
-                  <td>${matchResult}</td>
                 </tr>
               `)
         .join("")}
@@ -255,17 +242,18 @@ const FileOutput = (parsedAddresses1, parsedAddresses2, res) => {
             .status(500)
             .send(ErrorResponse("The number of address in the files are not equal, please make sure they are before running the script"));
     }
-    const output = Array.from(parsedAddresses1, (address1, i) => {
-        address1 = (0, checker_1.quoteRemoval)(address1);
-        const address2 = (0, checker_1.quoteRemoval)(parsedAddresses2[i]);
-        if (address1 && address2) {
-            return [
-                address1,
-                address2,
-                (0, checker_1.getMatchResultString)((0, checker_1.MatchAddresses)(address1, address2)),
-            ];
-        }
-    });
+    const output = (0, checker_1.MatchAddresses2)(parsedAddresses1, parsedAddresses2);
+    // const output = Array.from(parsedAddresses1, (address1, i) => {
+    //   address1 = quoteRemoval(address1);
+    //   const address2 = quoteRemoval(parsedAddresses2[i]);
+    //   if (address1 && address2) {
+    //     return [
+    //       address1,
+    //       address2,
+    //       getMatchResultString(MatchAddresses(address1, address2)),
+    //     ];
+    //   }
+    // });
     (0, fileCreator_1.default)(output, res, new Date().toDateString());
 };
 //# sourceMappingURL=index.js.map

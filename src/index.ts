@@ -1,6 +1,11 @@
 import express, { Response } from "express";
 import multer from "multer";
-import { getMatchResultString, MatchAddresses, quoteRemoval } from "./checker";
+import {
+  getMatchResultString,
+  MatchAddresses,
+  MatchAddresses2,
+  quoteRemoval,
+} from "./checker";
 import CreateAndDownloadSheet from "./fileCreator";
 import FileParse, { removeFile } from "./flieParser";
 import dotenv from "dotenv";
@@ -192,8 +197,7 @@ const ErrorResponse = (error: string): string => {
 const TableOutput = (
   parsedAddresses1: string[],
   parsedAddresses2: string[],
-  res: Response,
-  isFile?: boolean
+  res: Response
 ) => {
   if (parsedAddresses1.length !== parsedAddresses2.length) {
     return res
@@ -203,19 +207,7 @@ const TableOutput = (
       );
   }
 
-  const output = Array.from(parsedAddresses1, (address1, i) => {
-    address1 = quoteRemoval(address1);
-
-    const address2 = quoteRemoval(parsedAddresses2[i]);
-
-    if (address1 && address2) {
-      return [
-        address1,
-        address2,
-        getMatchResultString(MatchAddresses(address1, address2)),
-      ];
-    }
-  });
+  const output = MatchAddresses2(parsedAddresses1, parsedAddresses2);
 
   res.status(200).send(`
       <html>
@@ -228,20 +220,17 @@ const TableOutput = (
             <tr>
               <th>Address 1</th>
               <th>Address 2</th>
-              <th>Match Result</th>
             </tr>
             ${output
               .filter(Boolean)
               .map(
-                ([address1, address2, matchResult]) =>
+                ([address1, address2]) =>
                   address1 &&
                   address2 &&
-                  matchResult &&
                   `
                 <tr>
                   <td>${address1}</td>
                   <td>${address2}</td>
-                  <td>${matchResult}</td>
                 </tr>
               `
               )
@@ -268,19 +257,20 @@ const FileOutput = (
       );
   }
 
-  const output = Array.from(parsedAddresses1, (address1, i) => {
-    address1 = quoteRemoval(address1);
+  const output = MatchAddresses2(parsedAddresses1, parsedAddresses2);
+  // const output = Array.from(parsedAddresses1, (address1, i) => {
+  //   address1 = quoteRemoval(address1);
 
-    const address2 = quoteRemoval(parsedAddresses2[i]);
+  //   const address2 = quoteRemoval(parsedAddresses2[i]);
 
-    if (address1 && address2) {
-      return [
-        address1,
-        address2,
-        getMatchResultString(MatchAddresses(address1, address2)),
-      ];
-    }
-  });
+  //   if (address1 && address2) {
+  //     return [
+  //       address1,
+  //       address2,
+  //       getMatchResultString(MatchAddresses(address1, address2)),
+  //     ];
+  //   }
+  // });
 
   CreateAndDownloadSheet(output, res, new Date().toDateString());
 };
