@@ -46,7 +46,7 @@ app.get("/file", (req, res) => {
         <h1>Address Matcher</h1>
         <form method="POST" action="/match/file" enctype="multipart/form-data">
 
-          <label for="sheet1">Sheet 1:</label>
+          <label for="sheet1">Sheet 1 <i>This is the main file</i>:</label>
           <input type="file" id="sheet1" name="sheet1" required accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" /><br><br>
 
           <label for="sheet2">Sheet 2:</label>
@@ -76,7 +76,7 @@ app.get("/input", (req, res) => {
         <form method="POST" action="/match">
           <p>Each address should be on a new line</p>
 
-          <label for="addresses1">Addresses 1:</label>
+          <label for="addresses1">Addresses 1 <i>This is the main address</i>:</label>
           <textarea id="addresses1" name="addresses1" rows="5" required></textarea><br><br>
 
           <label for="addresses2">Addresses 2:</label>
@@ -199,14 +199,6 @@ const TableOutput = (
   parsedAddresses2: string[],
   res: Response
 ) => {
-  if (parsedAddresses1.length !== parsedAddresses2.length) {
-    return res
-      .status(400)
-      .send(
-        ErrorResponse("The number of addresses in the fields is not equal")
-      );
-  }
-
   const output = MatchAddresses2(parsedAddresses1, parsedAddresses2);
 
   res.status(200).send(`
@@ -247,30 +239,7 @@ const FileOutput = (
   parsedAddresses2: string[],
   res: Response
 ) => {
-  if (parsedAddresses1.length !== parsedAddresses2.length) {
-    return res
-      .status(500)
-      .send(
-        ErrorResponse(
-          "The number of address in the files are not equal, please make sure they are before running the script"
-        )
-      );
-  }
-
   const output = MatchAddresses2(parsedAddresses1, parsedAddresses2);
-  // const output = Array.from(parsedAddresses1, (address1, i) => {
-  //   address1 = quoteRemoval(address1);
-
-  //   const address2 = quoteRemoval(parsedAddresses2[i]);
-
-  //   if (address1 && address2) {
-  //     return [
-  //       address1,
-  //       address2,
-  //       getMatchResultString(MatchAddresses(address1, address2)),
-  //     ];
-  //   }
-  // });
 
   CreateAndDownloadSheet(output, res, new Date().toDateString());
 };
