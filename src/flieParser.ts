@@ -28,6 +28,22 @@ const FileParse = async (filePath: string): Promise<string[]> => {
   return addresses;
 };
 
+export async function retrieveAddresses(): Promise<string> {
+  return new Promise((resolve, reject) => {
+    fs.readFile("addresses.txt", "utf8", (err, data) => {
+      if (err) {
+        if (err.code === "ENOENT") {
+          resolve("");
+        } else {
+          reject(err);
+        }
+      } else {
+        resolve(data.toString());
+      }
+    });
+  });
+}
+
 export const removeFile = (filePath: string) => {
   fs.unlinkSync(filePath);
 };

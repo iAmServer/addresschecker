@@ -1,13 +1,8 @@
 import express, { Response } from "express";
 import multer from "multer";
-import {
-  getMatchResultString,
-  MatchAddresses,
-  MatchAddresses2,
-  quoteRemoval,
-} from "./checker";
-import CreateAndDownloadSheet from "./fileCreator";
-import FileParse, { removeFile } from "./flieParser";
+import { compareArrays } from "./checker";
+import CreateAndDownloadSheet, { storeAddresses } from "./fileCreator";
+import FileParse, { removeFile, retrieveAddresses } from "./flieParser";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -76,18 +71,41 @@ app.get("/input", (req, res) => {
         <form method="POST" action="/match">
           <p>Each address should be on a new line</p>
 
-          <label for="addresses1">Addresses 1 <i>This is the main address</i>:</label>
-          <textarea id="addresses1" name="addresses1" rows="5" required></textarea><br><br>
+          <label for="useOldStoreAddresses">Use Stored Addressess for Addresses 1:</label>
+          <input type="checkbox" id="useOldStoreAddresses" name="useOldStoreAddresses"><br /><br />
 
-          <label for="addresses2">Addresses 2:</label>
-          <textarea id="addresses2" name="addresses2" rows="5" required></textarea><br><br>
+          <p>NB: For every new addressess1 it overrides the stored addresses on the system</p>
+
+          <div id="addresses1Container">
+            <label for="addresses1">Addresses 1 <i>This is the main address</i>:</label><br />
+            <textarea id="addresses1" name="addresses1" rows="5" required></textarea><br /><br />
+          </div>
+
+          <label for="addresses2">Addresses 2:</label><br />
+          <textarea id="addresses2" name="addresses2" rows="5" required></textarea><br /><br />
           
           <label for="addresses2">Export to excel? 
             <input type="checkbox" name="export" />
-          </label><br><br>
+          </label><br /><br />
 
           <input type="submit" value="Check Match">
         </form>
+
+        <script>
+          const useOldStoreAddressCheckbox = document.getElementById("useOldStoreAddresses");
+          const addresses1Container = document.getElementById("addresses1Container");
+          const addresses1Textarea = document.getElementById("addresses1");
+
+          useOldStoreAddressCheckbox.addEventListener("change", function() {
+            addresses1Container.style.display = this.checked ? "none" : "block";
+            addresses1Textarea.disabled = this.checked;
+            if (this.checked) {
+              addresses1Textarea.removeAttribute("required");
+            } else {
+              addresses1Textarea.setAttribute("required", "required");
+            }
+          });
+        </script>
 
         <br /><br /><a href="/">Go Back</a>
       </body>
@@ -98,17 +116,35 @@ app.get("/input", (req, res) => {
 app.post("/match", async (req, res) => {
   const addresses1: string = req.body.addresses1;
   const addresses2: string = req.body.addresses2;
-  const exportOutput: boolean = req.body.export === "on";
+  const useOldStoreAddresses: boolean =
+    req.body.useOldStoreAddresses === "on" ? true : false;
+  const exportOutput: boolean = req.body.export === "on" ? true : false;
 
-  if (!addresses1 || !addresses2) {
+  if ((!addresses1 || !useOldStoreAddresses) && !addresses2) {
     return res
       .status(400)
       .send(ErrorResponse("Both address fields are required"));
   }
 
   try {
-    const parsedAddresses1 = addresses1.split("\n");
-    const parsedAddresses2 = addresses2.split("\n");
+    let parsedAddresses1: string[] = [];
+    const parsedAddresses2 = addresses2.split("\r\n");
+    const storedAddresses = await retrieveAddresses();
+
+    if (useOldStoreAddresses && storedAddresses) {
+      return res
+        .status(400)
+        .send(
+          ErrorResponse("There's currently no stored address on the system")
+        );
+    }
+
+    parsedAddresses1 = storedAddresses.split("\r\n");
+
+    if (useOldStoreAddresses === false) {
+      await storeAddresses(addresses1);
+      parsedAddresses1 = addresses1.split("\r\n");
+    }
 
     if (exportOutput) {
       FileOutput(parsedAddresses1, parsedAddresses2, res);
@@ -199,7 +235,7 @@ const TableOutput = (
   parsedAddresses2: string[],
   res: Response
 ) => {
-  const output = MatchAddresses2(parsedAddresses1, parsedAddresses2);
+  const output = compareArrays(parsedAddresses1, parsedAddresses2);
 
   res.status(200).send(`
       <html>
@@ -216,13 +252,15 @@ const TableOutput = (
             ${output
               .filter(Boolean)
               .map(
-                ([address1, address2]) =>
+                ([address1, address2, output]) =>
                   address1 &&
                   address2 &&
+                  output &&
                   `
                 <tr>
                   <td>${address1}</td>
                   <td>${address2}</td>
+                  <td>${output}</td>
                 </tr>
               `
               )
@@ -239,7 +277,7 @@ const FileOutput = (
   parsedAddresses2: string[],
   res: Response
 ) => {
-  const output = MatchAddresses2(parsedAddresses1, parsedAddresses2);
+  const output = compareArrays(parsedAddresses1, parsedAddresses2);
 
   CreateAndDownloadSheet(output, res, new Date().toDateString());
 };

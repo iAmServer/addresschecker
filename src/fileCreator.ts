@@ -1,4 +1,5 @@
 import { Workbook } from "exceljs";
+import fs from "fs";
 import { Response } from "express";
 
 const CreateAndDownloadSheet = (
@@ -26,4 +27,17 @@ const CreateAndDownloadSheet = (
   });
 };
 
+export async function storeAddresses(addresses: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    fs.writeFile("addresses.txt", addresses, (err) => {
+      if (err) {
+        console.error("Error storing addresses1:", err);
+        reject(err);
+      } else {
+        console.log("Addresses1 stored successfully.");
+        resolve();
+      }
+    });
+  });
+}
 export default CreateAndDownloadSheet;

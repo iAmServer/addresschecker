@@ -1,11 +1,21 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getMatchResultString = exports.removeOrdinal = exports.MatchAddresses2 = exports.MatchAddresses = exports.quoteRemoval = void 0;
+exports.removeOrdinal = exports.compareArrays = exports.quoteRemoval = void 0;
 const constant_1 = require("./constant");
 const getStreetFromAddress = (address) => {
-    const match = (0, exports.quoteRemoval)(address).split(":")[0].split("-")[0].split(",");
+    const match = (0, exports.quoteRemoval)(getStreetFromAddress2(address))
+        .split(":")[0]
+        .split(",");
     if (match && match.length > 0) {
         return match[0].trim();
+    }
+    return "";
+};
+const getStreetFromAddress2 = (address) => {
+    const splitAddress = address.split("-");
+    if (splitAddress.length > 0) {
+        const firstPart = splitAddress[0].trim();
+        return firstPart;
     }
     return "";
 };
@@ -38,35 +48,30 @@ const formatAddress = (address) => {
     }
     return formattedParts.join(" ").trim();
 };
-const MatchAddresses = (address1, address2) => {
-    const formattedAddress1 = formatAddress(getStreetFromAddress(address1)).trim();
-    const formattedAddress2 = formatAddress(getStreetFromAddress(address2)).trim();
-    return (formattedAddress2 === formattedAddress1 ||
-        formattedAddress2.includes(formattedAddress1) ||
-        formattedAddress1.includes(formattedAddress2));
-};
-exports.MatchAddresses = MatchAddresses;
-const MatchAddresses2 = (addresses1, addresses2) => {
-    const matches = [];
-    for (const address2 of addresses2) {
-        const formattedAddress2 = formatAddress(getStreetFromAddress(address2)).trim();
-        const addressMatches = [];
-        for (const address1 of addresses1) {
-            const formattedAddress1 = formatAddress(getStreetFromAddress(address1)).trim();
-            if (formattedAddress2 === formattedAddress1 ||
-                formattedAddress2.includes(formattedAddress1) ||
-                formattedAddress1.includes(formattedAddress2)) {
-                addressMatches.push(address1);
+function compareArrays(arr1, arr2) {
+    const formattedAddresses1 = [];
+    const formattedAddresses2 = [];
+    const matchingPairs = [];
+    for (const item of arr1) {
+        const formattedAddress = formatAddress(getStreetFromAddress(item)).trim();
+        formattedAddresses1.push(formattedAddress);
+    }
+    for (const item of arr2) {
+        const formattedAddress = formatAddress(getStreetFromAddress(item)).trim();
+        formattedAddresses2.push(formattedAddress);
+    }
+    for (let i = 0; i < formattedAddresses1.length; i++) {
+        const str1 = formattedAddresses1[i];
+        if (formattedAddresses2.includes(str1)) {
+            const matchedIndex = formattedAddresses2.findIndex((str2) => str2 === str1);
+            if (matchedIndex !== -1) {
+                matchingPairs.push([arr1[i], arr2[matchedIndex], "MATCHED"]);
             }
         }
-        if (addressMatches.length > 0) {
-            addressMatches.unshift(address2);
-            matches.push(addressMatches);
-        }
     }
-    return matches;
-};
-exports.MatchAddresses2 = MatchAddresses2;
+    return matchingPairs;
+}
+exports.compareArrays = compareArrays;
 const ordinalRemoval = (value) => {
     return value.replace(/(\d+)(st|nd|rd|th)/gi, "$1");
 };
@@ -84,8 +89,4 @@ const removeOrdinal = (address) => {
     return words.join(" ");
 };
 exports.removeOrdinal = removeOrdinal;
-const getMatchResultString = (matchResult) => {
-    return matchResult ? "MATCH" : "NOT MATCH";
-};
-exports.getMatchResultString = getMatchResultString;
 //# sourceMappingURL=checker.js.map

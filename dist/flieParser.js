@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.removeFile = void 0;
+exports.removeFile = exports.retrieveAddresses = void 0;
 const exceljs_1 = require("exceljs");
 const fs_1 = __importDefault(require("fs"));
 const getCellValue = (row, cellIndex) => {
@@ -34,6 +34,26 @@ const FileParse = (filePath) => __awaiter(void 0, void 0, void 0, function* () {
     ];
     return addresses;
 });
+function retrieveAddresses() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise((resolve, reject) => {
+            fs_1.default.readFile("addresses.txt", "utf8", (err, data) => {
+                if (err) {
+                    if (err.code === "ENOENT") {
+                        resolve("");
+                    }
+                    else {
+                        reject(err);
+                    }
+                }
+                else {
+                    resolve(data.toString());
+                }
+            });
+        });
+    });
+}
+exports.retrieveAddresses = retrieveAddresses;
 const removeFile = (filePath) => {
     fs_1.default.unlinkSync(filePath);
 };

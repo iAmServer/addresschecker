@@ -5,10 +5,23 @@ import {
 } from "./constant";
 
 const getStreetFromAddress = (address: string): string => {
-  const match = quoteRemoval(address).split(":")[0].split("-")[0].split(",");
+  const match = quoteRemoval(getStreetFromAddress2(address))
+    .split(":")[0]
+    .split(",");
 
   if (match && match.length > 0) {
     return match[0].trim();
+  }
+
+  return "";
+};
+
+const getStreetFromAddress2 = (address: string): string => {
+  const splitAddress = address.split("-");
+
+  if (splitAddress.length > 0) {
+    const firstPart = splitAddress[0].trim();
+    return firstPart;
   }
 
   return "";
@@ -43,55 +56,40 @@ const formatAddress = (address: string): string => {
   return formattedParts.join(" ").trim();
 };
 
-export const MatchAddresses = (address1: string, address2: string): boolean => {
-  const formattedAddress1 = formatAddress(
-    getStreetFromAddress(address1)
-  ).trim();
-  const formattedAddress2 = formatAddress(
-    getStreetFromAddress(address2)
-  ).trim();
+export function compareArrays(
+  arr1: string[],
+  arr2: string[]
+): [string, string, string][] {
+  const formattedAddresses1: string[] = [];
+  const formattedAddresses2: string[] = [];
+  const matchingPairs: [string, string, string][] = [];
 
-  return (
-    formattedAddress2 === formattedAddress1 ||
-    formattedAddress2.includes(formattedAddress1) ||
-    formattedAddress1.includes(formattedAddress2)
-  );
-};
+  for (const item of arr1) {
+    const formattedAddress = formatAddress(getStreetFromAddress(item)).trim();
+    formattedAddresses1.push(formattedAddress);
+  }
 
-export const MatchAddresses2 = (
-  addresses1: string[],
-  addresses2: string[]
-): string[][] => {
-  const matches: string[][] = [];
+  for (const item of arr2) {
+    const formattedAddress = formatAddress(getStreetFromAddress(item)).trim();
+    formattedAddresses2.push(formattedAddress);
+  }
 
-  for (const address2 of addresses2) {
-    const formattedAddress2 = formatAddress(
-      getStreetFromAddress(address2)
-    ).trim();
-    const addressMatches: string[] = [];
+  for (let i = 0; i < formattedAddresses1.length; i++) {
+    const str1 = formattedAddresses1[i];
 
-    for (const address1 of addresses1) {
-      const formattedAddress1 = formatAddress(
-        getStreetFromAddress(address1)
-      ).trim();
+    if (formattedAddresses2.includes(str1)) {
+      const matchedIndex = formattedAddresses2.findIndex(
+        (str2) => str2 === str1
+      );
 
-      if (
-        formattedAddress2 === formattedAddress1 ||
-        formattedAddress2.includes(formattedAddress1) ||
-        formattedAddress1.includes(formattedAddress2)
-      ) {
-        addressMatches.push(address1);
+      if (matchedIndex !== -1) {
+        matchingPairs.push([arr1[i], arr2[matchedIndex], "MATCHED"]);
       }
-    }
-
-    if (addressMatches.length > 0) {
-      addressMatches.unshift(address2);
-      matches.push(addressMatches);
     }
   }
 
-  return matches;
-};
+  return matchingPairs;
+}
 
 const ordinalRemoval = (value: string) => {
   return value.replace(/(\d+)(st|nd|rd|th)/gi, "$1");
@@ -112,8 +110,4 @@ export const removeOrdinal = (address: string): string => {
   }
 
   return words.join(" ");
-};
-
-export const getMatchResultString = (matchResult: boolean): string => {
-  return matchResult ? "MATCH" : "NOT MATCH";
 };
