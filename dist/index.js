@@ -157,7 +157,7 @@ app.post("/match", (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         let parsedAddresses1 = [];
         const parsedAddresses2 = addresses2.split("\r\n");
         const storedAddresses = yield (0, flieParser_1.retrieveAddresses)();
-        if (useOldStoreAddresses && storedAddresses) {
+        if (useOldStoreAddresses && !storedAddresses) {
             return res
                 .status(400)
                 .send(ErrorResponse("There's currently no stored address on the system"));

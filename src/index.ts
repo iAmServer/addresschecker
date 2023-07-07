@@ -131,7 +131,7 @@ app.post("/match", async (req, res) => {
     const parsedAddresses2 = addresses2.split("\r\n");
     const storedAddresses = await retrieveAddresses();
 
-    if (useOldStoreAddresses && storedAddresses) {
+    if (useOldStoreAddresses && !storedAddresses) {
       return res
         .status(400)
         .send(
