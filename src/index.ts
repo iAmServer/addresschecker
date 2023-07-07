@@ -1,17 +1,57 @@
-import express, { Response } from "express";
+import express, { NextFunction, Response } from "express";
 import multer from "multer";
 import { compareArrays } from "./checker";
 import CreateAndDownloadSheet, { storeAddresses } from "./fileCreator";
 import FileParse, { removeFile, retrieveAddresses } from "./flieParser";
 import dotenv from "dotenv";
+import cookieParser from "cookie-parser";
 
 dotenv.config();
+
+const authenticate = (req: any, res: Response, next: NextFunction) => {
+  const reject = () => {
+    res.setHeader("www-authenticate", "Basic");
+    res.sendStatus(401);
+  };
+
+  const authorization = req.headers.authorization;
+  const session = req["signedCookies"].session;
+
+  if (req.method === "GET" && session === "authenticated") {
+    return next();
+  }
+
+  if (!authorization) {
+    return reject();
+  }
+
+  const [username, password] = Buffer.from(
+    authorization.replace("Basic ", ""),
+    "base64"
+  )
+    .toString()
+    .split(":");
+
+  if (!(username === "godaisy2023" && password === "godaisy2023")) {
+    return reject();
+  }
+
+  res.cookie("session", "authenticated", {
+    signed: true,
+    maxAge: 60 * 60 * 1000,
+    httpOnly: true,
+  });
+
+  next();
+};
 
 const app = express();
 const port = process.env.PORT || 3000;
 const upload = multer({ dest: "uploads/" });
 
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser("w35rqwbt435qg6yg2qd45yjhwes5d"));
+app.use(authenticate);
 
 app.get("/", (req, res) => {
   res.send(`
@@ -41,8 +81,15 @@ app.get("/file", (req, res) => {
         <h1>Address Matcher</h1>
         <form method="POST" action="/match/file" enctype="multipart/form-data">
 
-          <label for="sheet1">Sheet 1 <i>This is the main file</i>:</label>
-          <input type="file" id="sheet1" name="sheet1" required accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" /><br><br>
+          <label for="useOldStoreAddresses">Use Stored Addressess for Addresses 1:</label>
+          <input type="checkbox" id="useOldStoreAddresses" name="useOldStoreAddresses"><br /><br />
+
+          <p>NB: For every new Addressess 1 it overrides the stored addresses on the system</p>
+
+          <div id="addresses1Container">
+            <label for="sheet1">Sheet 1 <i>This is the main file</i>:</label>
+            <input type="file" id="sheet1" name="sheet1" required accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" /><br><br>
+          </div>
 
           <label for="sheet2">Sheet 2:</label>
           <input type="file" id="sheet2" name="sheet2" required accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" /><br><br>
@@ -53,9 +100,24 @@ app.get("/file", (req, res) => {
 
           <input type="submit" value="Check Match">
         </form>
+        <br /><br /><a href="/">Go Back</a>
       </body>
 
-      <br /><br /><a href="/">Go Back</a>
+       <script>
+          const useOldStoreAddressCheckbox = document.getElementById("useOldStoreAddresses");
+          const addresses1Container = document.getElementById("addresses1Container");
+          const sheet1 = document.getElementById("sheet1");
+
+          useOldStoreAddressCheckbox.addEventListener("change", function() {
+            addresses1Container.style.display = this.checked ? "none" : "block";
+            sheet1.disabled = this.checked;
+            if (this.checked) {
+              sheet1.removeAttribute("required");
+            } else {
+              sheet1.setAttribute("required", "required");
+            }
+          });
+        </script>
     </html>
   `);
 });
@@ -74,7 +136,7 @@ app.get("/input", (req, res) => {
           <label for="useOldStoreAddresses">Use Stored Addressess for Addresses 1:</label>
           <input type="checkbox" id="useOldStoreAddresses" name="useOldStoreAddresses"><br /><br />
 
-          <p>NB: For every new addressess1 it overrides the stored addresses on the system</p>
+          <p>NB: For every new Addressess 1 it overrides the stored addresses on the system</p>
 
           <div id="addresses1Container">
             <label for="addresses1">Addresses 1 <i>This is the main address</i>:</label><br />
@@ -91,6 +153,10 @@ app.get("/input", (req, res) => {
           <input type="submit" value="Check Match">
         </form>
 
+        
+        <br /><br /><a href="/">Go Back</a>
+        </body>
+
         <script>
           const useOldStoreAddressCheckbox = document.getElementById("useOldStoreAddresses");
           const addresses1Container = document.getElementById("addresses1Container");
@@ -106,9 +172,6 @@ app.get("/input", (req, res) => {
             }
           });
         </script>
-
-        <br /><br /><a href="/">Go Back</a>
-      </body>
     </html>
   `);
 });
@@ -163,7 +226,9 @@ app.post(
     { name: "sheet2", maxCount: 1 },
   ]),
   async (req, res) => {
-    const exportOutput: boolean = req.body.export === "on";
+    const useOldStoreAddresses: boolean =
+      req.body.useOldStoreAddresses === "on" ? true : false;
+    const exportOutput: boolean = req.body.export === "on" ? true : false;
     let sheet1Path: string | undefined;
     let sheet2Path: string | undefined;
 
@@ -171,39 +236,65 @@ app.post(
       const files: { [fieldname: string]: Express.Multer.File[] } =
         req.files as any;
 
-      sheet1Path = files.sheet1[0].path;
+      sheet1Path =
+        files.sheet1 && files.sheet1.length > 0 && files.sheet1[0].path;
       sheet2Path = files.sheet2[0].path;
 
-      if (!sheet1Path || !sheet2Path) {
+      if ((!sheet1Path || !useOldStoreAddresses) && !sheet2Path) {
         return res
           .status(400)
           .send(ErrorResponse("Both files are required for the script to run"));
       }
 
-      const [parsedAddresses1, parsedAddresses2] = await Promise.allSettled([
-        FileParse(sheet1Path),
-        FileParse(sheet2Path),
-      ]);
+      let parsedAddresses1: string[] = [];
+      let parsedAddresses2: string[] = [];
 
-      if (
-        parsedAddresses1.status === "rejected" ||
-        parsedAddresses2.status === "rejected"
-      ) {
+      if (useOldStoreAddresses) {
+        const storedAddresses = await retrieveAddresses();
+
+        if (!storedAddresses) {
+          return res
+            .status(400)
+            .send(
+              ErrorResponse("There's currently no stored address on the system")
+            );
+        }
+        parsedAddresses1 = storedAddresses.split("\r\n");
+      } else {
+        const parsedSheet1 = await FileParse(sheet1Path);
+        if (!parsedSheet1) {
+          return res
+            .status(400)
+            .send(
+              ErrorResponse(
+                "We couldn't parse the first file, please look into the uploaded file and try again"
+              )
+            );
+        }
+
+        parsedAddresses1 = parsedSheet1;
+        await storeAddresses(parsedSheet1.join("\r\n"));
+      }
+
+      const parsedSheet2 = await FileParse(sheet2Path);
+      if (!parsedSheet2) {
         return res
           .status(400)
           .send(
             ErrorResponse(
-              "We couldn't parse one or both files, please look into the uploaded file and try again"
+              "We couldn't parse the second file, please look into the uploaded file and try again"
             )
           );
       }
+      parsedAddresses2 = parsedSheet2;
 
       if (exportOutput) {
-        FileOutput(parsedAddresses1.value, parsedAddresses2.value, res);
+        FileOutput(parsedAddresses1, parsedAddresses2, res);
       } else {
-        TableOutput(parsedAddresses1.value, parsedAddresses2.value, res);
+        TableOutput(parsedAddresses1, parsedAddresses2, res);
       }
     } catch (error) {
+      console.log(error);
       res.status(500).send(ErrorResponse(error.message));
     } finally {
       if (sheet1Path) {
@@ -222,6 +313,9 @@ app.listen(port, () => {
 
 const ErrorResponse = (error: string): string => {
   return `<html>
+        <head>
+          <title>Address Matcher - Error</title>
+        </head>
         <body>
           <h1>Address Matcher</h1>
           <p>Error: ${error}</p>
